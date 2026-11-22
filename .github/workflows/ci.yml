@@ -1,0 +1,47 @@
+name: CI
+
+on:
+  push:
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  server:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        python: ["3.10", "3.13"]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: ${{ matrix.python }}
+      - name: Unit tests
+        run: python -I -m unittest discover -s server/tests -v
+
+  extension:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - name: Mozilla linter
+        run: npx --yes web-ext@8.10.0 lint --source-dir extension --self-hosted --warnings-as-errors
+      - name: Package
+        run: python3 tools/build.py --id codes@ci.invalid --server https://codes.example.com
+
+  docker:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Build both images
+        run: |
+          docker build --target service -t codes-service .
+          docker build --target relay -t codes-relay .
+      - name: Smoke test
+        run: |
+          docker run --rm codes-service help
+          docker run --rm codes-relay nginx -t

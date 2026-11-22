@@ -1,0 +1,29 @@
+:root { --bg:#fff; --fg:#111827; --mut:#6b7280; --line:#e5e7eb; --card:#f9fafb; --acc:#2563eb; --ok:#16a34a; --warn:#b45309; color-scheme: light dark; }
+@media (prefers-color-scheme: dark) { :root { --bg:#1f2937; --fg:#f3f4f6; --mut:#9ca3af; --line:#374151; --card:#111827; --acc:#60a5fa; --ok:#4ade80; --warn:#fbbf24; } }
+* { box-sizing: border-box; }
+body { margin:0; font:13px/1.45 system-ui, -apple-system, "Segoe UI", sans-serif; background:var(--bg); color:var(--fg); }
+.wrap { padding:12px 14px; width:330px; }
+.opts .wrap { width:auto; max-width:560px; margin:24px auto; }
+h1 { font-size:14px; margin:0 0 2px; }
+.site { color:var(--mut); font-size:12px; margin-bottom:10px; word-break:break-all; }
+.card { background:var(--card); border:1px solid var(--line); border-radius:10px; padding:10px 12px; margin-bottom:10px; }
+.code { font:600 26px/1.2 ui-monospace, "SF Mono", Menlo, monospace; letter-spacing:3px; margin:2px 0 6px; word-break:break-all; }
+.meta { color:var(--mut); font-size:12px; }
+.warn { color:var(--warn); font-size:12px; margin-top:4px; }
+.row { display:flex; gap:6px; flex-wrap:wrap; margin-top:8px; }
+button { font:inherit; border:1px solid var(--line); background:var(--bg); color:var(--fg); border-radius:7px; padding:5px 10px; cursor:pointer; }
+button.primary { background:var(--acc); border-color:var(--acc); color:#fff; }
+button:disabled { opacity:.5; cursor:default; }
+.spin { display:inline-block; width:10px; height:10px; border:2px solid var(--mut); border-top-color:transparent; border-radius:50%; animation:s 1s linear infinite; margin-right:6px; vertical-align:-1px; }
+@keyframes s { to { transform:rotate(360deg); } }
+h2 { font-size:12px; color:var(--mut); font-weight:600; margin:12px 0 6px; text-transform:uppercase; letter-spacing:.04em; }
+.item { border-top:1px solid var(--line); padding:8px 0; }
+.item .code { font-size:18px; letter-spacing:2px; margin:0; }
+.ok { color:var(--ok); }
+.err { color:#dc2626; }
+input[type=password], input[type=text] { width:100%; font:inherit; padding:6px 8px; border:1px solid var(--line); border-radius:7px; background:var(--bg); color:var(--fg); }
+label { display:block; font-weight:600; margin:10px 0 4px; }
+p { margin:6px 0; }
+code { font-family:ui-monospace, Menlo, monospace; font-size:12px; }
+label.check { font-weight:400; display:flex; gap:6px; align-items:center; margin-top:14px; }
+label.check input { width:auto; margin:0; }

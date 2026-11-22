@@ -1,0 +1,17 @@
+# systemd user unit, for running the service without Docker (see README, "Without Docker").
+# Assumes the repository is cloned in ~/codes-verification; adjust ExecStart otherwise.
+[Unit]
+Description=codes: verification codes from Gmail for the Firefox extension
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+ExecStart=/usr/bin/python3 -I %h/codes-verification/server/codes.py serve
+Restart=always
+RestartSec=5
+UMask=0077
+NoNewPrivileges=yes
+
+[Install]
+WantedBy=default.target

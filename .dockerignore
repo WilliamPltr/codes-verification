@@ -1,0 +1,5 @@
+*
+!server/*.py
+!server/public_suffix_list.dat
+!relay/nginx.conf
+!relay/test/

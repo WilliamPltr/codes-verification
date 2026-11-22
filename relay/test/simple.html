@@ -1,0 +1,8 @@
+<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><link rel="stylesheet" href="test.css"><title>Test: single field</title></head><body><nav><a href="./">Tests</a> · <a href="simple.html">Single field</a> · <a href="boxes.html">Boxes</a> · <a href="boxes-js.html">Boxes 3+3</a> · <a href="overlay.html">Overlay</a></nav>
+<h1>Verify it's you</h1><p><button id="send">Send me a code</button></p><p id="state"></p>
+<form id="f"><label for="c">Verification code</label><br>
+<input id="c" name="c" autocomplete="one-time-code" inputmode="numeric" maxlength="8" class="big"><br>
+<button>Verify</button></form><p id="result"></p>
+<script src="test.js"></script>
+<script>document.getElementById("f").onsubmit = (e) => { e.preventDefault(); verify(document.getElementById("c").value); };</script>
+</body></html>

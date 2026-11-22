@@ -1,0 +1,155 @@
+{
+  "extName": {
+    "message": "codes"
+  },
+  "extDescription": {
+    "message": "Remplit les codes de vérification reçus par mail, depuis votre propre serveur. Ne valide jamais à votre place."
+  },
+  "cmdFill": {
+    "message": "Remplir le code reçu par mail pour ce site (si le remplissage automatique n'a pas eu lieu)"
+  },
+  "secondsAgo": {
+    "message": "il y a $1 s"
+  },
+  "minutesAgo": {
+    "message": "il y a $1 min"
+  },
+  "serverLabel": {
+    "message": "Adresse du serveur"
+  },
+  "keyLabel": {
+    "message": "Clé d'accès de ce navigateur"
+  },
+  "keyHelp": {
+    "message": "Créez-la sur le serveur avec : codes token add <nom>. Révocable à tout moment avec : codes token revoke <nom>."
+  },
+  "saveAndTest": {
+    "message": "Enregistrer et tester"
+  },
+  "autoLabel": {
+    "message": "Remplissage automatique"
+  },
+  "autoHelp": {
+    "message": "Quand une page affiche un champ de code, le code reçu par mail y est écrit dès son arrivée. Jamais validé, jamais par-dessus une saisie."
+  },
+  "allowAllSites": {
+    "message": "Autoriser la détection des champs de code sur les sites"
+  },
+  "howTitle": {
+    "message": "Utilisation"
+  },
+  "how1": {
+    "message": "Rien à faire : demandez le code sur le site, il est rempli tout seul à l'arrivée du mail, avec un bouton Annuler."
+  },
+  "how2": {
+    "message": "En secours : le bouton de la barre d'outils (code, copie, liens de connexion, autres codes récents) ou Alt+Maj+C."
+  },
+  "how3": {
+    "message": "Le remplissage automatique n'a lieu que si le mail vient du site affiché et que Gmail a authentifié l'expéditeur. Sinon le code apparaît dans la fenêtre avec un avertissement. Raccourci modifiable dans about:addons, roue dentée, « Gérer les raccourcis d'extensions »."
+  },
+  "noServer": {
+    "message": "Indiquez l'adresse de votre serveur."
+  },
+  "badServer": {
+    "message": "L'adresse doit commencer par https://"
+  },
+  "needPermission": {
+    "message": "Firefox n'a pas encore autorisé l'accès à $1 : appuyez de nouveau sur Enregistrer et tester, puis acceptez."
+  },
+  "noKey": {
+    "message": "Aucune clé d'accès enregistrée."
+  },
+  "keySaved": {
+    "message": "clé enregistrée (masquée)"
+  },
+  "connected": {
+    "message": "Connecté ✓ (appareil « $1 »)"
+  },
+  "keyRefused": {
+    "message": "Clé d'accès refusée par le serveur."
+  },
+  "unreachable": {
+    "message": "Serveur injoignable."
+  },
+  "serverError": {
+    "message": "Erreur du serveur ($1)."
+  },
+  "warnUnverified": {
+    "message": "Gmail n'a pas pu confirmer que ce mail vient bien de $1."
+  },
+  "warnOtherSite": {
+    "message": "Envoyé par $1, pas par $2."
+  },
+  "fill": {
+    "message": "Remplir"
+  },
+  "fillAnyway": {
+    "message": "Remplir quand même"
+  },
+  "confirmFrom": {
+    "message": "Confirmer : ce code vient de $1"
+  },
+  "noField": {
+    "message": "Aucun champ trouvé : copiez le code"
+  },
+  "copy": {
+    "message": "Copier"
+  },
+  "copied": {
+    "message": "Copié ✓"
+  },
+  "signInLinkTo": {
+    "message": "Lien de connexion vers $1"
+  },
+  "openLink": {
+    "message": "Ouvrir le lien"
+  },
+  "otherRecent": {
+    "message": "Autres codes récents (10 min)"
+  },
+  "waitingFor": {
+    "message": "En attente d'un code de $1…"
+  },
+  "waitingHelp": {
+    "message": "Demandez le code sur le site : il apparaîtra ici dès son arrivée."
+  },
+  "nothingReceived": {
+    "message": "Aucun code reçu. Rouvrez la fenêtre pour attendre à nouveau."
+  },
+  "openSettings": {
+    "message": "Configurer"
+  },
+  "notConfigured": {
+    "message": "Adresse du serveur ou clé d'accès manquante."
+  },
+  "noSite": {
+    "message": "Page sans site (onglet spécial)"
+  },
+  "allowServer": {
+    "message": "Autoriser l'accès à $1"
+  },
+  "needServerAccess": {
+    "message": "L'extension doit pouvoir joindre votre serveur."
+  },
+  "noRecent": {
+    "message": "Aucun code récent."
+  },
+  "close": {
+    "message": "Fermer"
+  },
+  "undo": {
+    "message": "Annuler"
+  },
+  "codeFromIs": {
+    "message": "Code de $1 : $2"
+  },
+  "newCodeFromIs": {
+    "message": "Nouveau code de $1 : $2"
+  },
+  "filledCode": {
+    "message": "✓ Code de $1 rempli"
+  },
+  "filledNewCode": {
+    "message": "✓ Nouveau code de $1 rempli"
+  }
+}

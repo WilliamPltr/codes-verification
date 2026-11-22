@@ -1,0 +1,79 @@
+# codes: everything in one stack. Settings live in .env (copy .env.example).
+#
+#   codes   watches Gmail and answers on a Unix socket. No network port at all.
+#   relay   nginx, the only way in: GET /v1/* to the socket, rate limits, test pages.
+#   caddy   HTTPS with an automatic Let's Encrypt certificate (profile "caddy", see COMPOSE_PROFILES in .env).
+
+name: codes
+
+services:
+  codes:
+    build:
+      context: .
+      target: service
+    image: codes-service:local
+    restart: unless-stopped
+    environment:
+      GOOGLE_CLIENT_ID: ${GOOGLE_CLIENT_ID:?set GOOGLE_CLIENT_ID in .env}
+      GOOGLE_CLIENT_SECRET: ${GOOGLE_CLIENT_SECRET:?set GOOGLE_CLIENT_SECRET in .env}
+      CODES_PUBLIC_URL: https://${CODES_DOMAIN:?set CODES_DOMAIN in .env}
+      CODES_REQUIRE_DMARC: ${CODES_REQUIRE_DMARC:-1}
+      CODES_TEST_SEND: ${CODES_TEST_SEND:-1}
+      CODES_TEST_MAIL_TO: ${CODES_TEST_MAIL_TO:-}
+      SMTP_HOST: ${SMTP_HOST:-}
+      SMTP_PORT: ${SMTP_PORT:-587}
+      SMTP_USERNAME: ${SMTP_USERNAME:-}
+      SMTP_PASSWORD: ${SMTP_PASSWORD:-}
+      SMTP_FROM: ${SMTP_FROM:-}
+      SMTP_FROM_NAME: ${SMTP_FROM_NAME:-codes}
+      TZ: ${TZ:-UTC}
+    volumes:
+      - data:/data
+      - sock:/run/codes
+      - ./config:/config:ro
+    read_only: true
+    cap_drop: [ALL]
+    security_opt: ["no-new-privileges:true"]
+    mem_limit: 128m
+    pids_limit: 100
+
+  relay:
+    build:
+      context: .
+      target: relay
+    image: codes-relay:local
+    restart: unless-stopped
+    depends_on: [codes]
+    volumes:
+      - sock:/run/codes:ro
+    ports:
+      - "127.0.0.1:${RELAY_PORT:-8088}:80"
+    read_only: true
+    tmpfs: [/var/cache/nginx, /run, /tmp]
+    cap_drop: [ALL]
+    cap_add: [CHOWN, SETUID, SETGID, NET_BIND_SERVICE]
+    security_opt: ["no-new-privileges:true"]
+    mem_limit: 64m
+
+  caddy:
+    image: caddy:2-alpine
+    profiles: [caddy]
+    restart: unless-stopped
+    depends_on: [relay]
+    environment:
+      CODES_DOMAIN: ${CODES_DOMAIN}
+    ports:
+      - "80:80"
+      - "443:443"
+      - "443:443/udp"
+    volumes:
+      - ./Caddyfile:/etc/caddy/Caddyfile:ro
+      - caddy_data:/data
+      - caddy_config:/config
+    mem_limit: 128m
+
+volumes:
+  data:
+  sock:
+  caddy_data:
+  caddy_config:

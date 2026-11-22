@@ -1,0 +1,26 @@
+<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><link rel="stylesheet" href="test.css"><title>Test: boxes 3+3</title></head><body><nav><a href="./">Tests</a> · <a href="simple.html">Single field</a> · <a href="boxes.html">Boxes</a> · <a href="boxes-js.html">Boxes 3+3</a> · <a href="overlay.html">Overlay</a></nav>
+<h1>Sign-in code</h1><p><button id="send">Send me a code</button></p><p id="state"></p>
+<form id="f"><div class="boxes" id="boxes"></div><button>Verify</button></form><p id="result"></p>
+<script src="test.js"></script>
+<script>
+// Six type=tel inputs WITHOUT maxlength (the script enforces it), grouped 3 + 3 around a dash.
+const box = document.getElementById("boxes");
+for (let i = 0; i < 6; i++) {
+  if (i === 3) { const s = document.createElement("span"); s.className = "sep"; s.textContent = "–"; box.append(s); }
+  const el = document.createElement("input");
+  el.type = "tel";
+  el.setAttribute("aria-label", "Digit " + (i + 1));
+  box.append(el);
+}
+const ins = [...box.querySelectorAll("input")];
+ins.forEach((el, i) => {
+  el.addEventListener("input", () => {
+    const d = el.value.replace(/\D/g, "");
+    if (d.length > 1) { [...d].slice(0, 6 - i).forEach((c, j) => { ins[i + j].value = c; }); ins[Math.min(5, i + d.length - 1)].focus(); return; }
+    el.value = d;
+    if (d && ins[i + 1]) ins[i + 1].focus();
+  });
+  el.addEventListener("keydown", (e) => { if (e.key === "Backspace" && !el.value && ins[i - 1]) ins[i - 1].focus(); });
+});
+document.getElementById("f").onsubmit = (e) => { e.preventDefault(); verify(ins.map((x) => x.value).join("")); };
+</script></body></html>

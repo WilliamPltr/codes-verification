@@ -1,0 +1,155 @@
+{
+  "extName": {
+    "message": "codes"
+  },
+  "extDescription": {
+    "message": "Fills in the verification codes you receive by email, from your own server. Never submits anything for you."
+  },
+  "cmdFill": {
+    "message": "Fill in the emailed code for this site (if auto-fill didn't happen)"
+  },
+  "secondsAgo": {
+    "message": "$1 s ago"
+  },
+  "minutesAgo": {
+    "message": "$1 min ago"
+  },
+  "serverLabel": {
+    "message": "Server address"
+  },
+  "keyLabel": {
+    "message": "Access key for this browser"
+  },
+  "keyHelp": {
+    "message": "Create it on the server with: codes token add <name>. You can revoke it any time with: codes token revoke <name>."
+  },
+  "saveAndTest": {
+    "message": "Save and test"
+  },
+  "autoLabel": {
+    "message": "Fill in codes automatically"
+  },
+  "autoHelp": {
+    "message": "When a page shows a code field, the emailed code is typed in as soon as it arrives. Never submitted, never over what you typed."
+  },
+  "allowAllSites": {
+    "message": "Allow code field detection on websites"
+  },
+  "howTitle": {
+    "message": "How it works"
+  },
+  "how1": {
+    "message": "Nothing to do: ask the site for a code and it gets filled in when the email arrives, with an Undo button."
+  },
+  "how2": {
+    "message": "Fallback: the toolbar button (code, copy, sign-in links, other recent codes) or Alt+Shift+C."
+  },
+  "how3": {
+    "message": "Auto-fill only happens when the email comes from the site you are on and Gmail confirmed the sender. Otherwise the code shows in the popup with a warning. The shortcut can be changed in about:addons, gear menu, Manage Extension Shortcuts."
+  },
+  "noServer": {
+    "message": "Enter your server address."
+  },
+  "badServer": {
+    "message": "The address must start with https://"
+  },
+  "needPermission": {
+    "message": "Firefox has not allowed access to $1 yet: press Save and test again and accept."
+  },
+  "noKey": {
+    "message": "No access key saved yet."
+  },
+  "keySaved": {
+    "message": "key saved (hidden)"
+  },
+  "connected": {
+    "message": "Connected ✓ (device \"$1\")"
+  },
+  "keyRefused": {
+    "message": "The server refused this access key."
+  },
+  "unreachable": {
+    "message": "Server unreachable."
+  },
+  "serverError": {
+    "message": "Server error ($1)."
+  },
+  "warnUnverified": {
+    "message": "Gmail could not confirm that this email really comes from $1."
+  },
+  "warnOtherSite": {
+    "message": "Sent by $1, not by $2."
+  },
+  "fill": {
+    "message": "Fill in"
+  },
+  "fillAnyway": {
+    "message": "Fill in anyway"
+  },
+  "confirmFrom": {
+    "message": "Confirm: this code comes from $1"
+  },
+  "noField": {
+    "message": "No field found: copy the code"
+  },
+  "copy": {
+    "message": "Copy"
+  },
+  "copied": {
+    "message": "Copied ✓"
+  },
+  "signInLinkTo": {
+    "message": "Sign-in link to $1"
+  },
+  "openLink": {
+    "message": "Open the link"
+  },
+  "otherRecent": {
+    "message": "Other recent codes (10 min)"
+  },
+  "waitingFor": {
+    "message": "Waiting for a code from $1…"
+  },
+  "waitingHelp": {
+    "message": "Ask the site for a code: it will show up here as soon as it arrives."
+  },
+  "nothingReceived": {
+    "message": "No code received. Open the popup again to keep waiting."
+  },
+  "openSettings": {
+    "message": "Settings"
+  },
+  "notConfigured": {
+    "message": "Server address or access key missing."
+  },
+  "noSite": {
+    "message": "Page without a site (special tab)"
+  },
+  "allowServer": {
+    "message": "Allow access to $1"
+  },
+  "needServerAccess": {
+    "message": "The extension needs permission to reach your server."
+  },
+  "noRecent": {
+    "message": "No recent codes."
+  },
+  "close": {
+    "message": "Close"
+  },
+  "undo": {
+    "message": "Undo"
+  },
+  "codeFromIs": {
+    "message": "Code from $1: $2"
+  },
+  "newCodeFromIs": {
+    "message": "New code from $1: $2"
+  },
+  "filledCode": {
+    "message": "✓ Code from $1 filled in"
+  },
+  "filledNewCode": {
+    "message": "✓ New code from $1 filled in"
+  }
+}

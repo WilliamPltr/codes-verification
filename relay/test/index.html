@@ -1,0 +1,11 @@
+<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><link rel="stylesheet" href="test.css"><title>codes: test pages</title></head><body><nav><a href="./">Tests</a> · <a href="simple.html">Single field</a> · <a href="boxes.html">Boxes</a> · <a href="boxes-js.html">Boxes 3+3</a> · <a href="overlay.html">Overlay</a></nav>
+<h1>Try the extension</h1>
+<p>Each page imitates a sign-in form. Press <b>Send me a code</b>, then don't touch anything: the code should appear in the field by itself.</p>
+<ul>
+<li><a href="simple.html">Single field</a>: one input with <code>autocomplete="one-time-code"</code>.</li>
+<li><a href="boxes.html">Boxes</a>: six one-character inputs (<code>maxlength=1</code>) with auto-advance, like Apple or Microsoft.</li>
+<li><a href="boxes-js.html">Boxes 3+3</a>: six inputs in two groups, no <code>maxlength</code>, the page's script does the limiting.</li>
+<li><a href="overlay.html">Overlay</a>: one invisible input on top of six drawn boxes, like the input-otp library.</li>
+</ul>
+<p class="muted" id="mode"></p>
+<script src="test.js"></script></body></html>

@@ -1,0 +1,16 @@
+<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><link rel="stylesheet" href="test.css"><title>Test: overlay</title>
+<style>.otp{position:relative;display:inline-flex;gap:.5rem;margin:1rem 0}.slot{width:2.8rem;height:3.4rem;border:2px solid #d1d5db;border-radius:8px;display:grid;place-items:center;font-size:1.6rem}
+.slot.on{border-color:#2563eb}.otp input{position:absolute;inset:0;width:100%;height:100%;color:transparent;background:transparent;border:0;caret-color:transparent;font-size:1.6rem;letter-spacing:2.6rem;outline:none}</style>
+</head><body><nav><a href="./">Tests</a> · <a href="simple.html">Single field</a> · <a href="boxes.html">Boxes</a> · <a href="boxes-js.html">Boxes 3+3</a> · <a href="overlay.html">Overlay</a></nav>
+<h1>Enter your code</h1><p><button id="send">Send me a code</button></p><p id="state"></p>
+<form id="f"><div class="otp"><input id="c" name="code" maxlength="6" inputmode="numeric" autocomplete="one-time-code" spellcheck="false" data-input-otp="true">
+<div class="slot"></div><div class="slot"></div><div class="slot"></div><div class="slot"></div><div class="slot"></div><div class="slot"></div></div><br>
+<button>Verify</button></form><p id="result"></p>
+<script src="test.js"></script>
+<script>
+// Like input-otp (shadcn/ui): ONE transparent input on top of boxes drawn from its value.
+const c = document.getElementById("c"), slots = [...document.querySelectorAll(".slot")];
+const draw = () => { c.value = c.value.replace(/\D/g, "").slice(0, 6); slots.forEach((s, i) => { s.textContent = c.value[i] || ""; s.classList.toggle("on", document.activeElement === c && i === Math.min(c.value.length, 5)); }); };
+["input", "focus", "blur"].forEach((e) => c.addEventListener(e, draw));
+document.getElementById("f").onsubmit = (e) => { e.preventDefault(); verify(c.value); };
+</script></body></html>

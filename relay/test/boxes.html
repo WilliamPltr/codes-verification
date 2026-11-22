@@ -1,0 +1,21 @@
+<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><link rel="stylesheet" href="test.css"><title>Test: boxes</title></head><body><nav><a href="./">Tests</a> · <a href="simple.html">Single field</a> · <a href="boxes.html">Boxes</a> · <a href="boxes-js.html">Boxes 3+3</a> · <a href="overlay.html">Overlay</a></nav>
+<h1>Enter the 6-digit code</h1><p><button id="send">Send me a code</button></p><p id="state"></p>
+<form id="f"><div class="boxes" id="boxes"></div><button>Verify</button></form><p id="result"></p>
+<script src="test.js"></script>
+<script>
+// Six maxlength=1 inputs, auto-advance, backspace goes back, paste is spread over the boxes.
+const box = document.getElementById("boxes");
+for (let i = 0; i < 6; i++) {
+  const el = document.createElement("input");
+  Object.assign(el, { maxLength: 1, inputMode: "numeric", autocomplete: i === 0 ? "one-time-code" : "off" });
+  el.setAttribute("aria-label", "Digit " + (i + 1));
+  box.append(el);
+}
+const ins = [...box.querySelectorAll("input")];
+ins.forEach((el, i) => {
+  el.addEventListener("input", () => { el.value = el.value.replace(/\D/g, "").slice(-1); if (el.value && ins[i + 1]) ins[i + 1].focus(); });
+  el.addEventListener("keydown", (e) => { if (e.key === "Backspace" && !el.value && ins[i - 1]) ins[i - 1].focus(); });
+  el.addEventListener("paste", (e) => { e.preventDefault(); const t = e.clipboardData.getData("text").replace(/\D/g, ""); [...t].slice(0, 6).forEach((c, j) => { if (ins[j]) ins[j].value = c; }); });
+});
+document.getElementById("f").onsubmit = (e) => { e.preventDefault(); verify(ins.map((x) => x.value).join("")); };
+</script></body></html>
