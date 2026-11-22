@@ -13,6 +13,7 @@ function setMain(...nodes) { $("main").replaceChildren(...nodes); }
 
 function warning(item) {
   if (item.match) return null;
+  if (item.kind === "sms") return t("warnSms");
   if (item.verified === false) return t("warnUnverified", item.sender_domain);
   return host ? t("warnOtherSite", item.sender_domain, host) : null;
 }
@@ -23,7 +24,7 @@ function fillButton(item) {
   fill.onclick = async () => {
     if (!armed) {   // code from another sender: ask for an explicit second click (phishing protection)
       armed = true;
-      fill.textContent = t("confirmFrom", item.sender_domain);
+      fill.textContent = t("confirmFrom", item.label || item.sender_domain);
       fill.className = "primary";
       return;
     }
@@ -37,7 +38,7 @@ function fillButton(item) {
 
 function codeCard(item) {
   const card = h("div", { className: "card" });
-  const from = h("div", { className: "meta", textContent: `${item.sender_domain} · ${ageText(item.age)}` });
+  const from = h("div", { className: "meta", textContent: `${item.label || item.sender_domain} · ${ageText(item.age)}` });
   const subject = h("div", { className: "meta", textContent: item.subject });
   const row = h("div", { className: "row" });
   if (item.code) {
@@ -56,7 +57,7 @@ function codeCard(item) {
       open.onclick = async () => {
         if (!armed) {   // link from another sender: explicit second click, like codes
           armed = true;
-          open.textContent = t("confirmFrom", item.sender_domain);
+          open.textContent = t("confirmFrom", item.label || item.sender_domain);
           open.className = "primary";
           return;
         }

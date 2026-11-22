@@ -79,7 +79,7 @@ class Dmarc(unittest.TestCase):
                 self.assertFalse(dmarc_pass([("authentication-results", value)], "bank.com"))
 
 
-def request(path, token=None, method="GET", headers=None, relay=True):
+def request(path, token=None, method="GET", headers=None, relay=True, body=None):
     """relay=True adds X-Real-IP, as nginx does: the request looks like it came from the Internet."""
     s = socket.socket(socket.AF_UNIX, socket.SOCK_STREAM)
     s.settimeout(10)
@@ -90,7 +90,10 @@ def request(path, token=None, method="GET", headers=None, relay=True):
     if relay:
         extra["X-Real-IP"] = "203.0.113.7"
     lines = "".join(f"{k}: {v}\r\n" for k, v in extra.items())
-    s.sendall(f"{method} {path} HTTP/1.1\r\nHost: codes\r\n{lines}Content-Length: 0\r\nConnection: close\r\n\r\n".encode())
+    payload = json.dumps(body).encode() if body is not None else b""
+    if body is not None:
+        lines += "Content-Type: application/json\r\n"
+    s.sendall(f"{method} {path} HTTP/1.1\r\nHost: codes\r\n{lines}Content-Length: {len(payload)}\r\nConnection: close\r\n\r\n".encode() + payload)
     data = b""
     while chunk := s.recv(65536):
         data += chunk
@@ -103,8 +106,11 @@ class Api(unittest.TestCase):
     @classmethod
     def setUpClass(cls):
         cls.token = "cdx_test_" + "x" * 30
-        codes.save_tokens({"tokens": [{"name": "laptop", "sha256": hashlib.sha256(cls.token.encode()).hexdigest(),
-                                       "created": "2026-01-01T00:00:00"}]})
+        cls.sms_token = "cdx_sms_" + "y" * 30
+        codes.save_tokens({"tokens": [
+            {"name": "laptop", "sha256": hashlib.sha256(cls.token.encode()).hexdigest(), "created": "2026-01-01T00:00:00"},
+            {"name": "iphone", "sha256": hashlib.sha256(cls.sms_token.encode()).hexdigest(), "created": "2026-01-01T00:00:00",
+             "scope": "sms"}]})
         os.makedirs(os.path.dirname(config.SOCKET), exist_ok=True)
         cls.store = codes.Store()
         cls.srv = codes.Server(config.SOCKET, codes.Handler)
@@ -190,6 +196,55 @@ class Api(unittest.TestCase):
         self.assertEqual(request("/v1/code?domain=github.com&wait=abc", self.token)[0], 400)
         self.assertEqual(request("/v1/nope", self.token)[0], 404)
         self.assertEqual(request("/v1/me", self.token, method="POST")[0], 404)
+
+    # ---- text messages: the barrier is timing (5 minutes, first site wins), not DMARC
+    def sms(self, text, sender="Amazon", token=None):
+        return request("/v1/sms", token or self.sms_token, method="POST", body={"text": text, "from": sender})
+
+    def test_sms_keys_are_separate(self):
+        self.assertEqual(self.sms("Votre code est 123456", token=self.token)[0], 401)   # a reading key can't post
+        self.assertEqual(request("/v1/code?domain=github.com", self.sms_token)[0], 401)  # a posting key can't read
+        self.assertEqual(request("/v1/sms", None, method="POST", body={"text": "x"})[0], 401)
+
+    def test_sms_goes_to_the_waiting_site(self):
+        self.store.items.clear()
+        self.assertEqual(self.sms("Votre code de connexion est 482913. Ne le partagez pas.")[1], {"ok": True, "stored": True})
+        status, body = request("/v1/code?domain=www.impots.gouv.fr&top=www.impots.gouv.fr", self.token)
+        self.assertEqual((status, body["code"], body["match"], body["kind"]), (200, "482913", True, "sms"))
+        self.assertEqual(body["label"], "SMS Amazon")
+        # now it belongs to that site: another one gets nothing automatically
+        self.assertEqual(request("/v1/code?domain=evil.example&top=evil.example", self.token)[0], 204)
+        self.assertEqual(request("/v1/code?domain=impots.gouv.fr&top=impots.gouv.fr", self.token)[0], 200)
+        status, body = request("/v1/recent?domain=evil.example", self.token)
+        self.assertFalse(body["items"][0]["match"])
+
+    def test_sms_expires_after_five_minutes(self):
+        self.store.items.clear()
+        self.add(id="old", kind="sms", sender_domain="", sender="SFR", ts=time.time() - 301)
+        self.assertEqual(request("/v1/code?domain=github.com", self.token)[0], 204)
+        self.assertEqual(request("/v1/recent", self.token)[1]["items"], [])
+
+    def test_sms_naming_its_site_must_match_it(self):
+        self.store.items.clear()
+        self.sms("123456 is your code\n\n@github.com #123456")
+        self.assertEqual(request("/v1/code?domain=evil.example&top=evil.example", self.token)[0], 204)
+        self.assertEqual(request("/v1/code?domain=github.com&top=evil.example", self.token)[0], 204)
+        self.assertEqual(request("/v1/code?domain=github.com&top=github.com", self.token)[1]["code"], "123456")
+
+    def test_sms_without_code_is_dropped(self):
+        self.store.items.clear()
+        self.assertEqual(self.sms("On se voit à 19h30 ? Appelle-moi au 0612345678")[1], {"ok": True, "stored": False})
+        self.assertEqual(self.store.items, [])
+
+    def test_sms_newest_code_wins_and_frame_needs_tab(self):
+        self.store.items.clear()
+        self.sms("Code 111111 pour vous connecter")
+        self.sms("Code 222222 pour vous connecter")
+        self.assertEqual(request("/v1/code?domain=a.example&top=a.example", self.token)[1]["code"], "222222")
+        self.assertEqual(self.store.items[-1]["bound"], "a.example")
+
+    def test_sms_bad_bodies(self):
+        self.assertEqual(request("/v1/sms", self.sms_token, method="POST")[0], 400)   # empty
 
 
 if __name__ == "__main__":

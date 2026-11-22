@@ -85,7 +85,7 @@ async function fillInTab(tabId, item, host) {
   const tab = await browser.tabs.get(tabId);
   if (!host || siteOf(tab.url) !== host) return false;
   const allowed = [host];
-  if (item.match && item.sender_domain) allowed.push(item.sender_domain, "." + item.sender_domain);
+  if (item.match && item.sender_domain && item.kind !== "sms") allowed.push(item.sender_domain, "." + item.sender_domain);
   for (const mode of ["focus", "any"]) {
     const res = await browser.scripting.executeScript({ target: { tabId, allFrames: true }, func: codesFill, args: [item.code, mode, allowed] });
     if (res.some((r) => r.result && r.result.filled)) return true;

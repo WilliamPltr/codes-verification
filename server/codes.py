@@ -4,13 +4,14 @@
 usage:
   codes serve                     run the service (Gmail watcher + HTTP API on a Unix socket)
   codes auth                      authorize read-only access to Gmail (once)
-  codes token add <device>        create an access key for a browser (shown once)
+  codes token add <device> [--sms]  create an access key for a browser (shown once); --sms: a key that can
+                                  only SEND text messages (for the iPhone shortcut), never read codes
   codes token list                list access keys
   codes token revoke <device>     revoke an access key
   codes status                    service health, keys and recent accesses
   codes scan [minutes]            show what would be detected in recent emails (default: 60)
 
-Only the code or link is kept, never the email, for 10 minutes and in memory only.
+Only the code or link is kept, never the email or text message, for 10 minutes (SMS: 5) and in memory only.
 Every access is logged (device, site, sender), never the code itself. Settings: see README.md.
 """
 import hashlib, hmac, http.server, json, os, secrets, socket, socketserver, sys, threading, time, urllib.parse
@@ -20,10 +21,12 @@ sys.path.insert(0, os.path.dirname(os.path.realpath(__file__)))
 import config
 from domains import registrable, same_service
 from extract import analyze
+from sms import parse_sms
 from gmail import Gmail, GmailError, NotAuthorized, authorize
 
-VERSION = "1.4.0"
+VERSION = "1.5.0"
 TTL = 600                 # a code is served for 10 minutes after the email arrived
+SMS_TTL = int(config.get("CODES_SMS_WINDOW", "300") or 300)   # text messages: 5 minutes (see sms_matches)
 SLOW, FAST = 10, 1        # Gmail polling interval: idle / while a browser is waiting for a code
 MAX_WAIT = 50             # longest long-poll accepted from a client (seconds)
 MAX_CLIENTS = 32          # concurrent requests; more get 503 (the relay also limits per IP)
@@ -62,21 +65,38 @@ def save_tokens(d):
     os.replace(tmp, config.TOKENS_FILE)
 
 
-def check_token(tok):
-    """-> device name, or None"""
+def check_token(tok, scope="read"):
+    """-> device name, or None. A key made with --sms can only post text messages; the others can only read codes."""
     if not tok or len(tok) > 200:
         return None
     digest = hashlib.sha256(tok.encode()).hexdigest()
     found = None
     for t in load_tokens()["tokens"]:            # no early exit: same work whether or not the key exists
-        if hmac.compare_digest(t["sha256"], digest):
+        if hmac.compare_digest(t["sha256"], digest) and t.get("scope", "read") == scope:
             found = t["name"]
     return found
 
 
 # ---------------------------------------------------------------- recent codes + Gmail polling
-def matches(entry, host):
+def alive(x):
+    return now() - x["ts"] < (SMS_TTL if x.get("kind") == "sms" else TTL)
+
+
+def sms_matches(entry, host, top=None):
+    """Text messages carry no DMARC, so timing is the barrier: a code that arrived in the last 5 minutes goes to
+    the page where the user is waiting for it, and to that site only (the first one that took it).
+    An SMS that names its site (last line "@example.com #123456") must match that site, like an email."""
+    if not alive(entry):
+        return False
+    if entry["sender_domain"]:
+        return same_service(host, entry["sender_domain"]) and (top is None or same_service(top, entry["sender_domain"]))
+    return entry.get("bound") in (None, registrable(top or host))
+
+
+def matches(entry, host, top=None):
     """Can this code be handed to a page on `host` without asking the user?"""
+    if entry.get("kind") == "sms":
+        return sms_matches(entry, host, top)
     if entry.get("test"):                        # simulated test codes only ever match the relay's own host
         return bool(config.PUBLIC_URL) and host == urllib.parse.urlsplit(config.PUBLIC_URL).hostname
     return same_service(host, entry["sender_domain"]) and (entry["verified"] or not config.REQUIRE_DMARC)
@@ -94,7 +114,7 @@ class Store:
         cannot push out the codes of every other site."""
         with self.cond:
             domain = registrable(e["sender_domain"])
-            fresh = [x for x in self.items if now() - x["ts"] < TTL]
+            fresh = [x for x in self.items if alive(x) and not (x.get("kind") == "sms" and x["code"] == e["code"])]
             same = [x for x in fresh if registrable(x["sender_domain"]) == domain]
             drop = {id(x) for x in same[:-4]}
             self.items = [x for x in fresh if id(x) not in drop][-199:] + [e]
@@ -102,11 +122,16 @@ class Store:
 
     def fresh(self):
         with self.cond:
-            return [x for x in reversed(self.items) if now() - x["ts"] < TTL]
+            return [x for x in reversed(self.items) if alive(x)]
 
     def find(self, host, after=0, top=None):
         for x in self.fresh():
-            if x["ts"] >= after and matches(x, host) and (top is None or matches(x, top)):
+            if x["ts"] < after:
+                continue
+            if x.get("kind") == "sms":
+                if sms_matches(x, host, top):
+                    return x
+            elif matches(x, host) and (top is None or matches(x, top)):
                 return x
         return None
 
@@ -245,7 +270,8 @@ def send_test(store):
 # ---------------------------------------------------------------- HTTP over a Unix socket (behind the nginx relay)
 def public(e, host=None):
     out = {k: e[k] for k in ("id", "code", "link", "sender", "sender_domain", "subject", "verified")}
-    out.update(received=int(e["ts"]), age=int(now() - e["ts"]))
+    out.update(received=int(e["ts"]), age=int(now() - e["ts"]), kind=e.get("kind", "mail"))
+    out["label"] = e["sender_domain"] or (f"SMS {e['sender']}".strip() if e.get("kind") == "sms" else "")
     if host:
         out["match"] = matches(e, host)
     return out
@@ -314,9 +340,13 @@ class Handler(http.server.BaseHTTPRequestHandler):
                     self.slots.release()
             if not e:
                 return self.send(204)
+            if e.get("kind") == "sms" and not e["sender_domain"] and e.get("bound") is None:
+                e["bound"] = registrable(top or host)   # this SMS code now belongs to the site that took it
+            out = public(e, host)
+            out["match"] = matches(e, host, top)
             journal(f"SERVED {'code' if e['code'] else 'link'} device={device} site={registrable(host)} "
-                    f"sender={e['sender_domain']} id={e['id']} ip={self.address_string()}")
-            return self.send(200, public(e, host))
+                    f"sender={out['label']} id={e['id']} ip={self.address_string()}")
+            return self.send(200, out)
         if u.path == "/v1/recent":
             items = [public(e, host or None) for e in store.fresh()]
             if items:
@@ -325,8 +355,43 @@ class Handler(http.server.BaseHTTPRequestHandler):
             return self.send(200, {"items": items})
         return self.send(404, {"error": "not found"})
 
+    def post_sms(self):
+        auth = self.headers.get("Authorization", "")
+        device = check_token(auth[7:].strip() if auth.startswith("Bearer ") else "", scope="sms")
+        if not device:
+            journal(f"DENIED invalid sms key ip={self.address_string()}")
+            time.sleep(1)
+            return self.send(401, {"error": "invalid access key"})
+        try:
+            n = int(self.headers.get("Content-Length", "0"))
+            if not 0 < n <= 4096:
+                raise ValueError
+            raw = self.rfile.read(n)
+            if "json" in self.headers.get("Content-Type", ""):
+                body = json.loads(raw)
+                text, sender = str(body.get("text", "")), str(body.get("from", ""))
+            else:                                   # form or plain text: "text" field, or the whole body
+                form = urllib.parse.parse_qs(raw.decode("utf-8", "replace"))
+                text = form["text"][0] if "text" in form else raw.decode("utf-8", "replace")
+                sender = form.get("from", [""])[0]
+        except (ValueError, AttributeError, UnicodeError):
+            return self.send(400, {"error": "invalid body"})
+        found = parse_sms(text)                     # the text itself is dropped right here, only the code is kept
+        if not found:
+            journal(f"SMS ignored (no code) device={device} ip={self.address_string()}")
+            return self.send(200, {"ok": True, "stored": False})
+        code, domain = found
+        sender = "".join(c for c in sender if (c.isprintable() and not c.isdigit()) or c == " ").strip()[:20]  # a name, never a number
+        self.server.store.add({"id": "sms-" + secrets.token_hex(6), "ts": now(), "kind": "sms", "sender": sender,
+                               "sender_domain": domain, "verified": True, "subject": "SMS", "code": code, "link": None})
+        journal(f"SMS stored device={device} sender={sender or '-'} site={domain or '-'} ip={self.address_string()}")
+        return self.send(200, {"ok": True, "stored": True})
+
     def do_POST(self):
-        if urllib.parse.urlsplit(self.path).path != "/test/send":
+        path = urllib.parse.urlsplit(self.path).path
+        if path == "/v1/sms":
+            return self.post_sms()
+        if path != "/test/send":
             return self.send(404, {"error": "not found"})
         origin = self.headers.get("Origin")
         if origin and origin.rstrip("/") != config.PUBLIC_URL:   # another website posting here (CSRF)
@@ -369,20 +434,21 @@ def serve():
 # ---------------------------------------------------------------- command line
 def cli_token(args):
     d = load_tokens()
-    if args[:1] == ["add"] and len(args) == 2:
-        name = args[1]
+    if args[:1] == ["add"] and len(args) in (2, 3) and (len(args) == 2 or args[2] == "--sms"):
+        name, scope = args[1], "sms" if len(args) == 3 else "read"
         if not name.replace("-", "").replace("_", "").isalnum() or len(name) > 40:
             sys.exit("device name: letters, digits, - and _ only (40 max)")
         if any(t["name"] == name for t in d["tokens"]):
             sys.exit(f"a key named '{name}' already exists (codes token revoke {name})")
         tok = "cdx_" + secrets.token_urlsafe(32)
         d["tokens"].append({"name": name, "sha256": hashlib.sha256(tok.encode()).hexdigest(),
-                            "created": datetime.now().isoformat(timespec="seconds")})
+                            "created": datetime.now().isoformat(timespec="seconds"), "scope": scope})
         save_tokens(d)
-        print(f"Access key for '{name}'. It is shown only once: paste it in the extension settings.\n\n{tok}\n")
+        where = "paste it in the iPhone shortcut" if scope == "sms" else "paste it in the extension settings"
+        print(f"Access key for '{name}'. It is shown only once: {where}.\n\n{tok}\n")
     elif args == ["list"]:
         for t in d["tokens"]:
-            print(f"{t['name']:20} created {t['created']}")
+            print(f"{t['name']:20} created {t['created']}" + ("  (sms only)" if t.get("scope") == "sms" else ""))
         if not d["tokens"]:
             print("no keys yet (codes token add <device>)")
     elif args[:1] == ["revoke"] and len(args) == 2:
@@ -391,7 +457,7 @@ def cli_token(args):
         save_tokens(d)
         print("revoked" if len(d["tokens"]) < n else "no such key")
     else:
-        sys.exit("usage: codes token add <device> | list | revoke <device>")
+        sys.exit("usage: codes token add <device> [--sms] | list | revoke <device>")
 
 
 def unix_get(path):

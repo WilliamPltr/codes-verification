@@ -77,6 +77,9 @@
   "warnUnverified": {
     "message": "Gmail could not confirm that this email really comes from $1."
   },
+  "warnSms": {
+    "message": "This text message already went to another site, or names another one."
+  },
   "warnOtherSite": {
     "message": "Sent by $1, not by $2."
   },

@@ -1,8 +1,15 @@
 """Detection tests: realistic emails (anonymized) and the traps they come with."""
-import os, sys, unittest
+import os, sys, tempfile, unittest
+
+# importing the server modules loads the settings: never those of the real instance
+_tmp = tempfile.mkdtemp(prefix="codes-test-")
+os.environ.update(CODES_CONFIG=os.path.join(_tmp, "none.env"), CODES_STATE_DIR=_tmp,
+                  CODES_SOCKET=os.path.join(_tmp, "sock", "codes.sock"), CODES_ALIASES_FILE=os.path.join(_tmp, "aliases.json"),
+                  CODES_PUBLIC_URL="https://codes.example.org", CODES_REQUIRE_DMARC="1")
 
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 from extract import analyze, html_to_text
+from sms import parse_sms
 
 # (subject, text, links, expected code, link expected?)
 FOUND = [
@@ -53,6 +60,32 @@ class Detection(unittest.TestCase):
         self.assertIn("654321", text)
         self.assertNotIn(".a{}", text)
         self.assertEqual(links, [("https://x.fr/login?t=1", "Sign in")])
+
+
+
+class Sms(unittest.TestCase):
+    CODES = [
+        ("Votre code de verification Amazon est 482913. Ne le partagez avec personne.", ("482913", "")),
+        ("<#> 123456 est votre code Google\n@accounts.google.com #123456 %abc", ("123456", "accounts.google.com")),
+        ("G-481516 est votre code de validation Google.", ("481516", "")),
+        ("Your Uber code is 4821. Never share this code.\n\n@uber.com #4821", ("4821", "uber.com")),
+        ("SFR : votre code 5 chiffres 38201 pour confirmer le paiement de 38,20 EUR", ("38201", "")),
+        ("Code: 123 456 pour vous connecter à La Poste", ("123456", "")),
+        ("Votre code: 4821", ("4821", "")),
+    ]
+    NOT_CODES = ["Salut on se retrouve à 1930 devant le cinéma ?", "Rendez-vous le code postal 33000 Bordeaux",
+                 "Ton colis n°123456 arrive demain", "Votre code de suivi colis 123456789 est prêt",
+                 "Appelle moi au 0634385190", "", "@evil #1"]
+
+    def test_found(self):
+        for text, expected in self.CODES:
+            with self.subTest(text=text[:40]):
+                self.assertEqual(parse_sms(text), expected)
+
+    def test_not_a_code(self):
+        for text in self.NOT_CODES:
+            with self.subTest(text=text[:40]):
+                self.assertIsNone(parse_sms(text))
 
 
 if __name__ == "__main__":

@@ -109,7 +109,7 @@
 
   function deliver(item, replacing) {
     const field = findField();
-    const shown = t(replacing ? "newCodeFromIs" : "codeFromIs", item.sender_domain, item.code);
+    const shown = t(replacing ? "newCodeFromIs" : "codeFromIs", item.label || item.sender_domain, item.code);
     const copy = [t("copy"), () => navigator.clipboard.writeText(item.code)];
     if (!field) return toast(shown, [copy]);
     const value = current(field);
@@ -119,7 +119,7 @@
     if (value) field.els.forEach((el) => setValue(el, ""));
     if (write(field, item.code)) {
       lastFilled = item.code;
-      toast(t(replacing ? "filledNewCode" : "filledCode", item.sender_domain), [[t("undo"), () => { field.els.forEach((el) => setValue(el, "")); lastFilled = ""; }, true]]);
+      toast(t(replacing ? "filledNewCode" : "filledCode", item.label || item.sender_domain), [[t("undo"), () => { field.els.forEach((el) => setValue(el, "")); lastFilled = ""; }, true]]);
     } else {
       toast(shown, [copy], 20000);
     }

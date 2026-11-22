@@ -29,10 +29,33 @@ flowchart LR
 ```
 
 - The **service** polls Gmail (every 10 s, every second while a page is waiting). It keeps only the code or sign-in link, the sender and the subject, for 10 minutes, in memory.
-- The **relay** is the only part exposed to the Internet: `GET /v1/*`, rate-limited, nothing else.
+- The **relay** is the only part exposed to the Internet: `GET /v1/*` and `POST /v1/sms`, rate-limited, nothing else.
 - The **extension** spots code fields (single field, one box per digit, invisible overlay inputs), asks your server for a code from *that site*, and fills it in. It never submits the form.
 
 Detection is plain regular expressions, no AI and no third party. It skips order numbers, prices, postcodes, promo codes and years.
+
+## Text messages (optional, iPhone)
+
+Codes sent by SMS to your iPhone can arrive the same way. An iPhone **Shortcuts automation** forwards each text that contains a code to `POST /v1/sms`; nothing to install on the phone.
+
+Texts carry no DMARC, so the safety net is **timing** and **a single owner**:
+
+- an SMS code is kept **5 minutes** (`CODES_SMS_WINDOW`), in memory, and the text itself is dropped as soon as the code is read;
+- it is filled into the page **where you are waiting for it** (the extension only asks while a code field is on screen), and **only the first site that takes it**: any other site gets nothing automatically afterwards;
+- an SMS ending with the standard line `@example.com #123456` must match that site, like an email;
+- the phone's key (`codes token add iphone --sms`) can only post texts, never read codes; a reading key can't post.
+
+The shortcut, step by step (iOS 17 or later, tested wording in French and English):
+
+1. On the server: `codes token add iphone --sms` (the key is shown once).
+2. **Shortcuts → Automation → + → Message.** Set **Message contains** to `code` (the app needs a filter; create one automation per word you want, e.g. `code`, `OTP`, `vérification`). Choose **Run Immediately**, keep *Notify When Run* off.
+3. New blank automation, then add the actions:
+   - **Match Text** (regular expression `\d{4,8}`) in *Shortcut Input → Content*.
+   - **If** *Matches* has no value → **Stop This Shortcut**. (So personal texts never leave the phone.)
+   - **Get Contents of URL**: URL `https://codes.example.com/v1/sms`, Method **POST**, Header `Authorization` = `Bearer <key>`, Request Body **JSON** with two Text fields: `text` = *Shortcut Input → Content*, `from` = *Shortcut Input → Sender → Name*.
+4. Run it once with the phone unlocked and answer **Always Allow** to the "send data to the domain" question.
+
+Limits: the phone must be on and online; texts that iOS files under *Junk* may not trigger the automation.
 
 ## Security
 
@@ -131,7 +154,7 @@ Nothing to do: the code is filled in when the email arrives, with an **Undo** bu
 
 | Task | Command |
 | --- | --- |
-| Add / list / revoke a key | `codes token add <name>` · `codes token list` · `codes token revoke <name>` |
+| Add / list / revoke a key | `codes token add <name> [--sms]` · `codes token list` · `codes token revoke <name>` |
 | Health and recent accesses | `codes status` |
 | What was detected (last 2 h) | `codes scan 120` |
 | Logs | `docker compose logs -f codes` |
